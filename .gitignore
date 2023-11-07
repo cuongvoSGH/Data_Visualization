@@ -1,6 +1,6 @@
 # Excel File
-.xls
-.pdf
+*.xls
+*.pdf
 
 # History files
 .Rhistory
