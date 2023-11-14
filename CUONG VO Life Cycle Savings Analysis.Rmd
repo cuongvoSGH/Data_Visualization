@@ -1,0 +1,96 @@
+---
+title: "LifeCycleSavings - CUONG VO - 131116"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-11-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(dplyr)
+attach(LifeCycleSavings)
+```
+
+## Dataset Desciption
+
+Dataset is about the savings of personal based on disposable income in the 10 year period from 1960 to 1970
+
+```{r echo=TRUE, paged.print=TRUE}
+summary(LifeCycleSavings)
+```
+
+```{r echo=TRUE, paged.print=TRUE}
+str(LifeCycleSavings)
+
+```
+
+The dataset is in the structure of dataframe, with 5 columns about ratio of savings (divided by disposalbe income) ("sr"), % of population ("pop15", "pop75"), disposable income ("dpi") and change of disposable income ("ddpi")
+
+```{r echo=TRUE}
+mean(sr)
+sd(sr)
+```
+
+For the savings ratio, the average amount in the population is `r mean(sr)` and the standard deviation is `r sd(sr)` and it's told that, people tend to save around `r mean(sr)`% their disposal income.
+
+```{r echo=TRUE}
+cor(LifeCycleSavings[, c("sr","pop15", "pop75", "dpi", "ddpi")])
+```
+```{r echo=TRUE}
+boxplot(sr, xlab = 'Savings Ratio')
+boxplot(pop15, xlab = '% population under 15')
+boxplot(pop75, xlab = '% population over 75')
+boxplot(dpi, xlab = 'Disposable income per capita')
+boxplot(ddpi, xlab = 'Variance of DPI')
+```
+
+The dataset do not have any outlier, base on the boxplot we can define for the outlier, the data do not have the outlier.
+
+```{r echo=TRUE}
+hist(sr, main = 'Histogram of Savings Ratio', probability = TRUE)
+lines(density(sr, adjust = 1.5), col = 'red', lwd = 2)
+```
+Base on the histogram, the histogram of the savings ratio, main the observation places from 0-15%
+
+## Top N Analysis
+
+```{r echo = TRUE}
+top10sr <- arrange(LifeCycleSavings, desc(sr)) %>% select('sr')
+top10sr<- top10sr %>% top_n(10)
+print(top10sr)
+```
+
+```{r echo = TRUE}
+barplot(top10sr$sr, 
+        names = row.names(top10sr), 
+        xlab = 'Country', 
+        ylab = 'Percent', 
+        col = if (top10sr$sr[1]) {'red'})
+```
+
+```{r echo = TRUE}
+top10dpi <- arrange(LifeCycleSavings, desc(dpi)) %>% select('dpi')
+top10dpi<- top10dpi %>% top_n(10)
+print(top10dpi)
+```
+
+```{r echo = TRUE}
+barplot(top10dpi$dpi, 
+        names = row.names(top10dpi), 
+        xlab = 'Country', 
+        ylab = 'Percent', 
+        col = if (top10dpi$dpi[1]) {'red'})
+```
+
+As we can see *`r row.names(top10sr)[1]`* have the highest rate of savings in the population at *`r top10sr$sr[1]`%* but it seem like *`r row.names(top10sr)[1]`* is not the country have the highest disposable income per capita. Compared with the country which have the highest dpi, *`r row.names(top10dpi)[1]`* can not make it into top 10 country that have the highest savings rate. 
+
+## Correlation Analysis
+
+```{r}
+require(stats); require(graphics)
+pairs(LifeCycleSavings, panel = panel.smooth,
+      main = "LifeCycleSavings data")
+```
+
+As we can see from correlation matrix, the saving ratio and % population under 15 is have negative correlation. Countries with young population tend to spend more instead of savings. However, the countries have old population tend to have higher savings ratio.
