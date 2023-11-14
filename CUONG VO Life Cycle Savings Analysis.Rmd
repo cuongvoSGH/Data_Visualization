@@ -8,6 +8,11 @@ date: "2023-11-14"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Initial setup
+
+```{r echo=TRUE}
 library(dplyr)
 attach(LifeCycleSavings)
 ```
