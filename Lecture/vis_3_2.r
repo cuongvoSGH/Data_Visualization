@@ -131,8 +131,20 @@ segments(x, 0, x, 100, lwd=20)
 segments(x, 0, x, 100, lwd=16, col="white")
 segments(x, 0, x, y, lwd=16, col="gray")
 
+?Eggs
+?ts
 
-
+library(BCA)
+data(Eggs)
+a<-data.frame(Eggs$Beef.Pr,
+              Eggs$Cases,
+              Eggs$Cereal.Pr,
+              Eggs$Chicken.Pr,
+              Eggs$Egg.Pr,
+              Eggs$Pork.Pr,
+              Eggs$Week)
+b<-cor(a)
+b["Eggs.Week","Eggs.Cereal.Pr"]
 
 
 

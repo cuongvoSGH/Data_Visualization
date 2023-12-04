@@ -129,3 +129,7 @@ title(main = "volcano data: filled contour map")
 Eggs$Month <- as.factor(Eggs$Month)
 Eggs$Month
 summary(Eggs)
+
+?hist
+?par
+?plot

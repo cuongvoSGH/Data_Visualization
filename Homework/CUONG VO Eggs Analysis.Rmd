@@ -1,0 +1,128 @@
+---
+title: "CUONG VO-Eggs-Analysis"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-12-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup Library and import Dataset
+```{r echo=TRUE}
+library(BCA)
+library(dplyr)
+library(corrplot)
+data(Eggs)
+```
+
+## Descriptive Statistics
+
+```{r echo=TRUE}
+summary(Eggs)
+```
+
+The data set contain 105 observations about price of Eggs, Beef, Pork, Chicken and Cereal for 105 weeks. For basic summary about the data set, the distribution of each category of data is equal and do not have significant fluctuation. We can deep dive into the data by following section.
+
+## Data Exploration
+
+```{r echo=TRUE}
+par(mfrow=c(2,1), mar= c(2,5,1,1), cex.axis = 1, cex.main = 1)
+boxplot(Eggs[,"Cases"], main = 'Cases Number')
+boxplot(Eggs[,c( "Egg.Pr", "Beef.Pr", "Pork.Pr", "Chicken.Pr", "Cereal.Pr")])
+```
+
+According to boxplot, wee can see for price of each category as chart above. Compared to Eggs, Beef, Chicken and Cereal, Pork have more fluctuation. The average price for each type as below:
+
+ * Egg: `r mean(Eggs$Egg.Pr)`
+ * Beef: `r mean(Eggs$Beef.Pr)`
+ * Pork: `r mean(Eggs$Pork.Pr)`
+ * Chicken: `r mean(Eggs$Chicken.Pr)`
+ * Cereal: `r mean(Eggs$Cereal.Pr)`
+
+```{r}
+par(mfrow= c(2,3), cex.main = 1, cex.lab = 1, cex.axis = 1)
+hist(Eggs$Cases, main = "Cases", xlab = "")
+hist(Eggs$Egg.Pr, main = "Egg Price", xlab = "")
+hist(Eggs$Pork.Pr, main = "Pork Price", xlab = "")
+hist(Eggs$Beef.Pr, main = "Beef Price", xlab = "")
+hist(Eggs$Chicken.Pr, main = "Chicken Price", xlab = "")
+hist(Eggs$Cereal.Pr, main = "Cereal Price", xlab = "")
+```
+
+The histogram provides us the distribution of each type of product. Beef Price and Cereal price have normal distribution compared to Egg, Chicken and Pork. 
+
+Pork Price kind of distributed around price 130-140 and 170-180 (as we can see in the chart)
+
+## Correlation Analysis
+
+```{r echo=TRUE}
+a<-data.frame(Eggs$Beef.Pr,
+              Eggs$Cases,
+              Eggs$Cereal.Pr,
+              Eggs$Chicken.Pr,
+              Eggs$Egg.Pr,
+              Eggs$Pork.Pr,
+              Eggs$Week)
+b<-cor(a)
+corrplot(b)
+```
+
+After consider each variable, we can use the corplot() to check the correlation between each variable. As you can see in the chart above, we can point out some insight base on the chart. 
+
+ * Cereal and Pork price increase by week (have increasing trend) --> Correlation is `r b["Eggs.Week","Eggs.Cereal.Pr"]` and `r b["Eggs.Week","Eggs.Pork.Pr"]` respectively
+ * Chicken tend to decrease the price by week --> Correlation is `r b["Eggs.Week","Eggs.Chicken.Pr"]`
+ * And also have slight inverse relationship between Eggs and Chicken, Pork due to those product is its alternative (each product can replace each other) --> correlation between Eggs ~ Chicken and Eggs ~ Pork is `r b["Eggs.Egg.Pr","Eggs.Chicken.Pr"]` and `r b["Eggs.Egg.Pr","Eggs.Pork.Pr"]` respectively
+
+## Time Series Analysis
+```{r echo=TRUE}
+par(mfrow = c(5,1), mar = c(2,5,1,1))
+plot(Eggs$Week, Eggs$Egg.Pr, type = 'l', xlab = "", ylab = "", axes = FALSE, main = "Eggs")
+plot(Eggs$Week, Eggs$Beef.Pr, type = 'l', xlab = "", ylab = "", axes = FALSE, main = "Beef")
+plot(Eggs$Week, Eggs$Pork.Pr, type = 'l', xlab = "", ylab = "", axes = FALSE, main = "Pork")
+plot(Eggs$Week, Eggs$Chicken.Pr, type = 'l', xlab = "", ylab = "", axes = FALSE, main = "Chicken")
+plot(Eggs$Week, Eggs$Cereal.Pr, type = 'l', xlab = "", ylab = "", axes = FALSE, main = "Cereal")
+axis(side = 1, at = NULL, labels = TRUE)
+
+```
+
+Chart above show us the time series of each kind of product and we can see the trend of each product by week.
+
+# Breakdown into timeseries analysis
+
+We can see in those charts below for the trend of each product Price, and the seasonal data. We can see the insight that:
+
+ * Eggs Price tend to increase again 
+ * Beef Price have a decreasing trend, the same trend with chicken
+ * Pork price reach a peak and tend to decrease. 
+ * Cereal price in still in the increasing trend. 
+
+```{r echo=TRUE}
+# Egg Price
+Egg_Price <- ts(Eggs$Egg.Pr, start = c(1992,1), frequency = 52)
+Egg_pr_comp <- decompose(Egg_Price)
+plot(Egg_pr_comp)
+
+# Beef Price
+Beef_Price <- ts(Eggs$Beef.Pr, start = c(1992,1), frequency = 52)
+Beef_pr_comp <- decompose(Beef_Price)
+plot(Beef_pr_comp)
+
+# Pork Price
+Pork_Price <- ts(Eggs$Pork.Pr, start = c(1992,1), frequency = 52)
+Pork_pr_comp <- decompose(Pork_Price)
+plot(Pork_pr_comp)
+
+# Chicken Price
+Chicken_Price <- ts(Eggs$Chicken.Pr, start = c(1992,1), frequency = 52)
+Chicken_pr_comp <- decompose(Chicken_Price)
+plot(Chicken_pr_comp)
+
+# Cereal Price
+Cereal_Price <- ts(Eggs$Cereal.Pr, start = c(1992,1), frequency = 52)
+Cereal_pr_comp <- decompose(Cereal_Price)
+plot(Cereal_pr_comp)
+
+```
