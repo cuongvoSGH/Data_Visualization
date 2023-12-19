@@ -1,0 +1,100 @@
+---
+title: "CUONG VO Investment Analysis"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-12-18"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup and import dataset
+
+``` {r echo=TRUE}
+data("Investment", package = "sandwich")
+Investment_df <- as.data.frame(Investment)
+```
+
+## Import library
+
+``` {r echo=TRUE}
+library(lattice)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+```
+
+## Descriptive Analysis of the dataset
+
+``` {r echo=TRUE}
+summary(Investment_df)
+```
+
+As we can see in the summary above, the summary bring to us the overview of the Investment data, and show the component of the dataset. And we use the histogram and boxplot (bwplot in lattice) to check for the outlier and distribution of each data field
+
+Histogram & Boxplot of Investment data
+
+``` {r echo=TRUE}
+df <- Investment_df %>% pivot_longer(cols = !0, names_to = "Items", values_to = "Amount" )
+df_Invest <- filter(df, Items == "Investment" | Items == "RealInv" ) 
+df_Rate <- filter(df, Items == "Interest" | Items == "RealInt" | Items == "Price" ) 
+df_GNP <- filter(df, Items == "GNP" | Items =="RealGNP" )
+```
+
+For each boxplot, we can see the Investment, Interest and GNP have the significant volatility when have the large variance compared to the mean. The data for Real Investment, Real Interest and Real GNP after the price adjustment have the small fluctuation compared to before modification. We can see the and standard deviation for Investment, Interest and GNP as below:
+
+* Investment: `r sd(Investment_df[,"Investment"])`
+* Interest: `r sd(Investment_df[,"Interest"])`
+* GNP: `r sd(Investment_df[,"GNP"])`
+
+``` {r echo=TRUE}
+bw1 <- bwplot(Amount~Items, data = df_Invest, main = "Investment")
+bw2 <- bwplot(Amount~Items, data = df_Rate, main = "Interest")
+bw3 <- bwplot(Amount~Items, data = df_GNP, main = "GNP")
+grid.arrange(bw1, bw2, bw3, ncol = 3, nrow = 1)
+```
+
+``` {r echo=TRUE}
+h1 <- histogram(~Investment_df[,"GNP"], type="count", xlab = "GNP")
+h2 <- histogram(~Investment_df[,"RealGNP"], type="count", xlab = "RealGNP")
+h3 <- histogram(~Investment_df[,"Investment"], type="count", xlab = "Investment")
+h4 <- histogram(~Investment_df[,"RealInv"], type="count", xlab = "RealInv")
+h5 <- histogram(~Investment_df[,"Interest"], type="count", xlab = "Interest")
+h6 <- histogram(~Investment_df[,"Price"], type="count", xlab = "Price")
+h7 <- histogram(~Investment_df[,"RealInt"], type="count", xlab = "RealInt")
+
+grid.arrange(h1, h2, h3, h4, h5, h6, h7, ncol = 4, nrow = 2)
+```
+
+For the distribution of each data field, the histogram show the distribution of each data field like above
+
+## The relationship between component in the dataset
+
+``` {r echo=TRUE}
+cor_matrix = cor(Investment_df[,c("GNP", "RealGNP", "Investment", "RealInv", "Interest", "Price")])
+levelplot(cor_matrix, scale=list(x=list(rot=45)))
+```
+
+The levelplot show us the relationship between those component and base on the correlation. All components have direct proportion with each other. Besides, the The investment and GNP have the most direct proportion compared to other pairs of components. It explains the fact that, Investment increase when we have economics growth. We will have the surplus to make an investment. 
+
+The correlation between Investment and GNP is `r cor_matrix["Investment", "GNP"]` almost 1
+
+## The relationship between investment and economic growth
+
+The relationship between investment and economic growth is shown by the chart below. The chart show that increase GNP (economics growth) will lead to the increase of Investment.
+
+``` {r echo=TRUE}
+xyplot(Investment~GNP, data = Investment_df, 
+       main = "Relationship between Investment and GNP",
+       type = c("o", "r"))
+```
+
+## Time series compared for GNP, Interest and Investment
+
+The chart show the time series of GNP, Interest and Investment. It show that the economics is on the increase trend.
+
+``` {r echo=TRUE}
+xyplot(Investment[,c("GNP", "Investment", "Interest")])
+```
