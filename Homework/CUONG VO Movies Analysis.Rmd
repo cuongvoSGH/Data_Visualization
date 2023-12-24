@@ -1,0 +1,23 @@
+---
+title: "CUONG VO Movies Analysis"
+output: html_document
+date: "2023-12-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Dataset and Library Import
+
+``` {r echo=TRUE}
+library(ggplot2movies)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+data(movies)
+```
+
+``` {r echo=TRUE}
+summary(movies)
+```
