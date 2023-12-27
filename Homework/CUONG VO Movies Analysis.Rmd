@@ -63,7 +63,6 @@ p_rating <- ggplot(filter(movies_bw, items =="rating"), aes(items, value))
 p_rating <- p_rating + geom_boxplot(outlier.color = "red")
 p_vote <- ggplot(filter(movies_bw, items =="votes"), aes(items, value))
 p_vote <- p_vote + geom_boxplot(outlier.color = "red")
-
 grid.arrange(p_length, p_rating, p_vote, ncol = 3)
 ```
 
@@ -85,14 +84,12 @@ p_vote <- ggplot(filter(movies_bw, items =="votes"), aes(items, value))
 p_vote <- p_vote + geom_boxplot(outlier.color = "red")
 p_budget <- ggplot(filter(movies_bw, items =="budget"), aes(items, value))
 p_budget <- p_budget + geom_boxplot(outlier.color = "red") + labs(x = "budget in millions USD")
-
-
 grid.arrange(p_length, p_rating, p_vote, p_budget, ncol = 2, nrow = 2)
 ```
 
 We also run the boxplot for data which is have the budget and the budget also have wide range of value with many outlier.
 
-``` {r echo=TRUE, warning=FALSE}
+``` {r echo=TRUE, message=FALSE}
 p_length <- ggplot(filter(movies_bw, items =="length"), aes(value))
 p_length <- p_length + geom_histogram() + labs(x = "length")
 p_rating <- ggplot(filter(movies_bw, items =="rating"), aes(value))
@@ -101,8 +98,6 @@ p_vote <- ggplot(filter(movies_bw, items =="votes"), aes(value))
 p_vote <- p_vote + geom_histogram(bins = 20) + labs(x = "votes")
 p_budget <- ggplot(filter(movies_bw, items =="budget"), aes(value))
 p_budget <- p_budget + geom_histogram(bins = 20) + labs(x = "budget")
-
-
 grid.arrange(p_length, p_rating, p_vote, p_budget, ncol = 2, nrow = 2)
 ```
 
