@@ -1,6 +1,8 @@
 ---
 title: "CUONG VO Movies Analysis"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 date: "2023-12-24"
 ---
 
@@ -8,16 +10,291 @@ date: "2023-12-24"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Dataset and Library Import
+# Dataset and Library Import
 
-``` {r echo=TRUE}
+``` {r message=FALSE, warning=FALSE}
 library(ggplot2movies)
 library(ggplot2)
+library(ggcorrplot)
 library(dplyr)
 library(tidyr)
+library(gridExtra)
 data(movies)
+movies <- as.data.frame(movies)
+movies[,"budget"] <- movies[,"budget"] / 1000000
+movies[,"votes"] <- movies[,"votes"] / 1000
+movies_wobudget <- filter(movies, budget!="NA")
 ```
+
+In order to Analyze, we separate the dataset into 2 sub dataset. One data do not include the NA record in budget for budget analyzing.  
 
 ``` {r echo=TRUE}
 summary(movies)
 ```
+
+After we run the summary of the dataset, we can see the data is have a wide range of fluctuation such as votes, length. We can see the standard deviation like below:
+
+* votes: `r sd(movies[,"votes"])`
+* length: `r sd(movies[,"length"])`
+
+Also we can see 90% data for budget is NA so we create the data for non NA record of budget and will run the summary again. The votes variable still have large fluctuation but the length decreased the fluctuation. 
+
+* votes: `r sd(movies_wobudget[,"votes"])`
+* length: `r sd(movies_wobudget[,"length"])`
+
+``` {r echo=TRUE}
+summary(movies_wobudget)
+```
+
+# Dataset Description, Distribution and Outlier
+## Variable describe the characteristic of the movies
+
+``` {r echo=TRUE}
+movies_bw <- movies[,c("length", "rating","votes")] %>% 
+  pivot_longer(
+    cols = c("length", "rating", "votes"),
+    names_to = "items",
+    values_to = "value"
+  )
+
+p_length <- ggplot(filter(movies_bw, items =="length"), aes(items, value))
+p_length <- p_length + geom_boxplot(outlier.color = "red")
+p_rating <- ggplot(filter(movies_bw, items =="rating"), aes(items, value))
+p_rating <- p_rating + geom_boxplot(outlier.color = "red")
+p_vote <- ggplot(filter(movies_bw, items =="votes"), aes(items, value))
+p_vote <- p_vote + geom_boxplot(outlier.color = "red")
+
+grid.arrange(p_length, p_rating, p_vote, ncol = 3)
+```
+
+We run the boxplot for length, rating, and votes and the observations have wide range of fluctuation and also have many outlier (highlight in red). The votes variable have wide range of fluctuation and it seem like do not have any pattern for this variable
+
+``` {r echo=TRUE}
+movies_bw <- movies_wobudget[,c("length", "rating","votes", "budget")] %>% 
+  pivot_longer(
+    cols = c("length", "rating", "votes", "budget"),
+    names_to = "items",
+    values_to = "value"
+  )
+
+p_length <- ggplot(filter(movies_bw, items =="length"), aes(items, value))
+p_length <- p_length + geom_boxplot(outlier.color = "red")
+p_rating <- ggplot(filter(movies_bw, items =="rating"), aes(items, value))
+p_rating <- p_rating + geom_boxplot(outlier.color = "red")
+p_vote <- ggplot(filter(movies_bw, items =="votes"), aes(items, value))
+p_vote <- p_vote + geom_boxplot(outlier.color = "red")
+p_budget <- ggplot(filter(movies_bw, items =="budget"), aes(items, value))
+p_budget <- p_budget + geom_boxplot(outlier.color = "red") + labs(x = "budget in millions USD")
+
+
+grid.arrange(p_length, p_rating, p_vote, p_budget, ncol = 2, nrow = 2)
+```
+
+We also run the boxplot for data which is have the budget and the budget also have wide range of value with many outlier.
+
+``` {r echo=TRUE}
+p_length <- ggplot(filter(movies_bw, items =="length"), aes(value))
+p_length <- p_length + geom_histogram() + labs(x = "length")
+p_rating <- ggplot(filter(movies_bw, items =="rating"), aes(value))
+p_rating <- p_rating + geom_histogram() + labs(x = "rating")
+p_vote <- ggplot(filter(movies_bw, items =="votes"), aes(value))
+p_vote <- p_vote + geom_histogram(bins = 20) + labs(x = "votes")
+p_budget <- ggplot(filter(movies_bw, items =="budget"), aes(value))
+p_budget <- p_budget + geom_histogram(bins = 20) + labs(x = "budget")
+
+
+grid.arrange(p_length, p_rating, p_vote, p_budget, ncol = 2, nrow = 2)
+```
+
+The histogram show us the distribution of the dataset and we decided to choose 4 variables for checking for the distribution and those variables have normal distribution.
+
+## Variable describe the rating detail of the movies
+
+For the variables that describe the rating detail of the movies (r1:r10 variables). Looking the boxplot of each variables we can see the average of the rating is around 7-8 points due to the fact that, those band from 6-8 have a lot of distribution of the observation.
+
+``` {r echo=TRUE}
+movies_bw <- movies[,c("r1", "r2","r3","r4","r5","r6","r7","r8","r9","r10")]
+names(movies_bw) <- c("r01", "r02","r03","r04","r05","r06","r07","r08","r09","r10")
+movies_bw <- movies_bw %>% 
+  pivot_longer(
+    cols = c("r01", "r02","r03","r04","r05","r06","r07","r08","r09","r10"),
+    names_to = "items",
+    values_to = "value"
+  )
+
+p <- ggplot(movies_bw, aes(items, value))
+p + geom_boxplot(outlier.color = "red")
+
+```
+
+``` {r echo=TRUE}
+p1 <- ggplot(filter(movies_bw, items=="r01"), aes(value))
+p1 <- p1 + geom_histogram(bins=3)
+p2 <- ggplot(filter(movies_bw, items=="r02"), aes(value))
+p2 <- p2 + geom_histogram(bins=3)
+p3 <- ggplot(filter(movies_bw, items=="r03"), aes(value))
+p3 <- p3 + geom_histogram(bins=3)
+p4 <- ggplot(filter(movies_bw, items=="r04"), aes(value))
+p4 <- p4 + geom_histogram(bins=3)
+p5 <- ggplot(filter(movies_bw, items=="r05"), aes(value))
+p5 <- p5 + geom_histogram(bins=3)
+p6 <- ggplot(filter(movies_bw, items=="r06"), aes(value))
+p6 <- p6 + geom_histogram(bins=3)
+p7 <- ggplot(filter(movies_bw, items=="r07"), aes(value))
+p7 <- p7 + geom_histogram(bins=3)
+p8 <- ggplot(filter(movies_bw, items=="r08"), aes(value))
+p8 <- p8 + geom_histogram(bins=3)
+p9 <- ggplot(filter(movies_bw, items=="r09"), aes(value))
+p9 <- p9 + geom_histogram(bins=3)
+p10 <- ggplot(filter(movies_bw, items=="r10"), aes(value))
+p10 <- p10 + geom_histogram(bins=3)
+
+grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10, ncol = 5, nrow =2)
+```
+
+In order to understand about the dataset, we may need to look at those topics below:
+
+# Examine trends in average movie lengths and average the number of votes received.
+
+``` {r echo=TRUE}
+df <- movies %>% 
+  group_by(year) %>%
+  summarise(
+    AVG_len = mean(length),
+    AVG_vote = mean(votes)
+  )
+
+df <- as.data.frame(df) %>% pivot_longer(
+  cols = c("AVG_len", "AVG_vote"), 
+  names_to = "items",
+  values_to = "value"
+)
+
+p_avg_len <- ggplot(filter(df, items=="AVG_len"), aes(year, value)) + 
+  geom_line(color="darkred") + 
+  labs(x="Average Length")
+p_avg_vote <- ggplot(filter(df, items=="AVG_vote"), aes(year, value)) + 
+  geom_line(color="steelblue") +
+  labs(x="Average Votes")
+
+df1 <- movies_wobudget %>% 
+  group_by(year) %>%
+  summarise(
+    AVG_budget = mean(budget)
+  )
+
+df1 <- as.data.frame(df1) %>% pivot_longer(
+  cols = c("AVG_budget"), 
+  names_to = "items",
+  values_to = "value"
+)
+
+p_avg_budget <- ggplot(filter(df1, items=="AVG_budget"), aes(year, value)) + 
+  geom_line(color="steelblue") +
+  labs(x="Average Budget")
+
+grid.arrange(p_avg_len, p_avg_vote, p_avg_budget, nrow =3)
+
+```
+
+As we can see from the charts above, average length of the movies tend to increase in the start of period 1900s and tend to remain unchanged or had non significant fluctuation from 1900s to 2000s
+
+However, for the voting, number of votes start to increase from 1980 when we have development of technology and the survey and cinema platform is more popular.
+
+And after 1975, the budget for film started to increase after long period remain unchanged or variance a little bit.
+
+# Compare average ratings or budgets for movies in different genres.
+
+``` {r echo=TRUE}
+movies_genres <- movies[,c("title", "year", "length", "rating", "votes", 
+                           "Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", "Short")]
+df <- movies_genres %>%  
+  pivot_longer(
+    cols=c("Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", "Short"),
+    names_to = "genres",
+    values_to = "value"
+  )
+df <- filter(df, value !=0)
+
+total = dim(movies)[1]
+
+df <- df %>% group_by(genres) %>%
+  summarise(
+    avg_len = mean(length),
+    avg_rate = sum(rating * votes) / sum(votes),
+    pct = sum(value) / total
+  )
+
+p1 <- ggplot(df, aes(x=reorder(genres, +avg_len), y =avg_len)) + 
+  geom_bar(stat = "identity", width = 0.4) + 
+  coord_flip() +
+  labs(x="", y = "Average Length")
+p2 <- ggplot(df, aes(x=reorder(genres, +avg_rate), y =avg_rate)) + 
+  geom_bar(stat = "identity", width = 0.4) + 
+  coord_flip() +
+  labs(x="", y = "Average Rate")
+p3 <- ggplot(df, aes(x=reorder(genres, +pct), y =pct)) + 
+  geom_bar(stat = "identity", width = 0.4) + 
+  coord_flip() +
+  labs(x="", y = "Percentage")
+
+grid.arrange(p1, p2, p3, nrow =3)
+```
+
+We can see from the charts above that, romance, action and drama are top 3 genres which have highest average length but in the contrast, documentary have the highest average rate 
+
+During the period, Drama is the genres which have the highest number of movies.
+
+``` {r echo=TRUE}
+movies_genres <- movies_wobudget[,c("title", "year", "length", "rating", "votes", "budget",
+                           "Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", "Short")]
+df <- movies_genres %>%  
+  pivot_longer(
+    cols=c("Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", "Short"),
+    names_to = "genres",
+    values_to = "value"
+  )
+df <- filter(df, value !=0)
+
+total = dim(movies)[1]
+
+df <- df %>% group_by(genres) %>%
+  summarise(
+    avg_len = mean(length),
+    avg_rate = sum(rating * votes) / sum(votes),
+    avg_budget = mean(budget),
+    pct = sum(value) / total
+  )
+
+p1 <- ggplot(df, aes(x=reorder(genres, +avg_len), y =avg_len)) + 
+  geom_bar(stat = "identity", width = 0.4) + 
+  coord_flip() +
+  labs(x="", y = "Average Length")
+p2 <- ggplot(df, aes(x=reorder(genres, +avg_rate), y =avg_rate)) + 
+  geom_bar(stat = "identity", width = 0.4) + 
+  coord_flip() +
+  labs(x="", y = "Average Rate")
+p3 <- ggplot(df, aes(x=reorder(genres, +avg_budget), y =avg_budget)) + 
+  geom_bar(stat = "identity", width = 0.4) + 
+  coord_flip() +
+  labs(x="", y = "Average Budget")
+p4 <- ggplot(df, aes(x=reorder(genres, +pct), y =pct)) + 
+  geom_bar(stat = "identity", width = 0.4) + 
+  coord_flip() +
+  labs(x="", y = "Percentage")
+
+grid.arrange(p1, p2, p3,p4, nrow =2, ncol = 2)
+```
+
+In the dataset with the budget, the status and insight are the same with the previous chart. But for the budget, the animation genres have the highest budget due to the filmming technology. 
+
+# Bubble chart for 3 variable for relationship in movies industry.
+
+``` {r echo=TRUE}
+p <- ggplot(movies_wobudget[,c("budget", "rating", "length")], 
+            aes(x=rating, y=length, size=budget))
+p + geom_point(colour="white", fill="red", shape=21) + 
+  scale_size_area(max_size = 10)
+```
+
+For the bubble chart, we can see that, the average length is around 100-200 minutes (when most of the point is allocated in that range). and the rating is around 6 to 7.5. Below that rating 6 the budget mainly small and also over 7.5, the movies have no or little budget (mainly short or documentary film)

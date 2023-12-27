@@ -1,6 +1,8 @@
 ---
 title: "CUONG VO Economics Analysis"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 date: "2023-12-24"
 ---
 
@@ -10,13 +12,137 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Dataset and Library import
 
-``` {r echo=TRUE}
+```{r message=FALSE, warning=FALSE}
 library(ggplot2)
+library(ggcorrplot)
 library(dplyr)
 library(tidyr)
+library(gridExtra)
 data(economics)
+data(economics_long)
+
+economics <- as.data.frame(economics)
+economics_long <- as.data.frame(economics_long)
+economics_long <- economics_long[,c("date", "variable", "value")]
+names(economics_long) <- c("date", "items", "value")
 ```
+
+Transform the dataset to the data frame for cleaning, analyzing and visualization. 
+
+## Dataset Description and Summary
 
 ``` {r echo=TRUE}
 summary(economics)
 ```
+
+Summary of data is above. The data contain 5 variables to describe the data of US economics. 
+
+* date: 574 obs from July 1967 to Apr 2015
+* pop: Total population
+* pce, psavert: the variables describe the consumption expenditure and average saving rate
+* uempmed, unemploy: the variable to describe the umployment condition.
+
+## Data distribution and outlier
+
+Combined with the summary result above and with boxplot and histogram, we can see the distribution and the abnormal of the dataset. As we can see:
+
+* The pce, pop have the wide range of data, they have large fluctuation compared to the mean values. The standard deviation are `r sd(economics[,"pce"])` and `r sd(economics[,"pop"])` respectively
+* We have abnormal data in uempmed and unemploy variables and the outlier is highlight with red in the charts below.
+
+``` {r echo=TRUE}
+p_pce <- ggplot(filter(economics_long, items == 'pce'), aes(factor(items), value))
+p_pce <- p_pce + geom_boxplot(outlier.colour = "red") + labs(x = '')
+p_pop <- ggplot(filter(economics_long, items == 'pop'), aes(factor(items), value))
+p_pop <- p_pop + geom_boxplot(outlier.colour = "red") + labs(x = '', y ='')
+p_psavert <- ggplot(filter(economics_long, items == 'psavert'), aes(factor(items), value))
+p_psavert <- p_psavert + geom_boxplot(outlier.colour = "red") + labs(x = '', y ='')
+p_uempmed <- ggplot(filter(economics_long, items == 'uempmed'), aes(factor(items), value))
+p_uempmed <- p_uempmed + geom_boxplot(outlier.colour = "red") + labs(x = '')
+p_unemploy <- ggplot(filter(economics_long, items == 'unemploy'), aes(factor(items), value))
+p_unemploy <- p_unemploy + geom_boxplot(outlier.colour = "red") + labs(x = '', y ='')
+
+grid.arrange(p_pce, p_pop, p_psavert, p_uempmed, p_unemploy, ncol = 3, nrow = 2)
+
+```
+
+The histogram show the distribution of all the variables. 
+
+``` {r echo=TRUE}
+p_pce <- ggplot(filter(economics_long, items == 'pce'), aes(value))
+p_pce <- p_pce + geom_histogram(bins = 10) + labs(x='pce')
+p_pop <- ggplot(filter(economics_long, items == 'pop'), aes(value))
+p_pop <- p_pop + geom_histogram(bins = 10) + labs(x = 'pop', y ='')
+p_psavert <- ggplot(filter(economics_long, items == 'psavert'), aes(value))
+p_psavert <- p_psavert + geom_histogram(bins = 10) + labs(x = 'psavert', y ='')
+p_uempmed <- ggplot(filter(economics_long, items == 'uempmed'), aes(value))
+p_uempmed <- p_uempmed + geom_histogram(bins = 10) + labs(x= 'uempmed')
+p_unemploy <- ggplot(filter(economics_long, items == 'unemploy'), aes(value))
+p_unemploy <- p_unemploy + geom_histogram(bins = 10) + labs(x='unemploy', y ='')
+
+grid.arrange(p_pce, p_pop, p_psavert, p_uempmed, p_unemploy, ncol = 3, nrow = 2)
+```
+
+In order to analyze the dataset, we may answer those question below:
+
+## How does personal consumption expenditure (pce) relate to unemployment (unemploy)?
+
+``` {r echo=TRUE}
+corr <- cor(economics[,c("pce","pop", "psavert","uempmed", "unemploy")])
+ggcorrplot(corr, outline.color = "white", lab = TRUE)
+```
+
+We will use the corplot chart to see the correlation between pce and unemploy. The pce and unemploy have the positive direction to each other. It mean that, people tend to spend more when the number of unemployment increased during the year. The coefficient between 2 variable is `r corr["pce","unemploy"]`
+
+## How does the median duration of unemployment (uempmed) change over time?
+
+``` {r echo=TRUE}
+p <- ggplot(filter(economics_long, items == 'uempmed'), aes(date, value))
+p <- p + geom_line()
+print(p)    
+
+df <- filter(economics_long, items == 'uempmed' & value == max(economics[,"uempmed"]))
+```
+
+Move to the unemployment status, the median duration of unemployment is shown in chart above and the line chart have many peak from 1967 to 2015. We can see during the observation period, the mean duration hit the peak at `r max(economics[,"uempmed"])` and at `r df`. This is the result of Global Financial Crisis start from 2008.
+
+``` {r echo=TRUE}
+economics_ts <- ts(economics[,"uempmed"], start = c(1967,7), frequency = 12)
+economics_comp <- decompose(economics_ts)
+plot(economics_comp)
+```
+
+## Is there a relationship between personal savings rate (psavert) and unemployment (unemploy)?
+
+``` {r echo=TRUE}
+p <- ggplot(economics[,c("psavert", "unemploy")], aes(psavert, unemploy))
+p + geom_point() + geom_line()
+```
+
+Combined with the corplot above and the chart related to the relationship between unemployment and personal saving, we can say that, the unemployment and personal saving do not have any relationship together. 
+
+The correlation between unemployment and personal saving is `r corr["unemploy","psavert"]`
+
+## How does the total population (pop) affect personal consumption expenditure (pce)?
+
+``` {r echo=TRUE}
+p <- ggplot(economics[,c("pop", "pce")], aes(pop, pce))
+p + geom_line()
+```
+
+The line chart show the relationship between the personal consumption and population. It mean that, the more increasing in the population will lead to the increasing of personal consumption expenditure.
+
+## Bublechart for 3 variables to visualize the US economics.
+
+``` {r echo=TRUE}
+economics[,"unemployrate"] = economics[,"unemploy"] / economics[,"pop"]
+p <- ggplot(economics[,c("pce", "unemployrate", "psavert")], 
+            aes(x=psavert, y=unemployrate, size=pce))
+p + geom_point(colour="white", fill="red", shape=21) + 
+  scale_size_area(max_size = 10)
+```
+
+We create one more variable about unemployment rate (unemployrate) with the formula below: 
+
+Unemployment Rate = Unemployement / Population
+
+The bubble chart show us very interesting insight when we compared between 3 variables unemployrate, psavert and pce. It show that, with the low rate unemployment, people tend to saving instead of spend the money. But when the unemployement rate increased, people spend alot and did not have any saving.
