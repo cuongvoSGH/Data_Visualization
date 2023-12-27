@@ -92,7 +92,7 @@ grid.arrange(p_length, p_rating, p_vote, p_budget, ncol = 2, nrow = 2)
 
 We also run the boxplot for data which is have the budget and the budget also have wide range of value with many outlier.
 
-``` {r echo=TRUE}
+``` {r echo=TRUE, warning=FALSE}
 p_length <- ggplot(filter(movies_bw, items =="length"), aes(value))
 p_length <- p_length + geom_histogram() + labs(x = "length")
 p_rating <- ggplot(filter(movies_bw, items =="rating"), aes(value))
@@ -207,7 +207,8 @@ And after 1975, the budget for film started to increase after long period remain
 
 ``` {r echo=TRUE}
 movies_genres <- movies[,c("title", "year", "length", "rating", "votes", 
-                           "Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", "Short")]
+                           "Action", "Animation", "Comedy", "Drama", 
+                           "Documentary", "Romance", "Short")]
 df <- movies_genres %>%  
   pivot_longer(
     cols=c("Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", "Short"),
@@ -247,7 +248,8 @@ During the period, Drama is the genres which have the highest number of movies.
 
 ``` {r echo=TRUE}
 movies_genres <- movies_wobudget[,c("title", "year", "length", "rating", "votes", "budget",
-                           "Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", "Short")]
+                           "Action", "Animation", "Comedy", "Drama", 
+                           "Documentary", "Romance", "Short")]
 df <- movies_genres %>%  
   pivot_longer(
     cols=c("Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", "Short"),
