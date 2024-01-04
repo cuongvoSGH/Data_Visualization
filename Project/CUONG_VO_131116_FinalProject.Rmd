@@ -1,0 +1,585 @@
+---
+title: "CUONG VO - Final Project - E Commerce"
+output:
+  pdf_document: default
+  html_document: default
+date: "2024-01-01"
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Library Import
+In this project we use libraries as below:
+
+* ggplot2, ggcorrplot, ggrepel, gghighlight: for chart and visualization
+* gridExtra: for chart layout and arrangement
+* tidyr, dplyr, forcats, lubridate: for data transformation.
+* maps: for maps chart
+* wordcloud2: create the word cloud
+
+``` {r message=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggcorrplot)
+library(gridExtra)
+library(dplyr)
+library(tidyr)
+library(maps)
+library(ggrepel)
+library(wordcloud2)
+library(gghighlight)
+library(forcats)
+library(lubridate)
+```
+
+# Themes & Color settings
+
+``` {r}
+light_yellow = "#FFF5C8"
+yellow = "#FFD61E"
+orange = "#FF6A00"
+red = "#862200"
+dark_red = "#490000"
+blue_background = "#8ABEEE"
+light_blue = "#8AACF4"
+pur_blue = "#9591EE"
+blue = "#787FDb"
+hea_blue = "#7C74CE"
+```
+
+# Dataset import & Cleanning
+This dataset provides a detailed perspective on U.S. shop operations, covering order details, product information, and financial performance metrics. It includes crucial data on sales, profit, cost, and discounts, offering a comprehensive view of the economic dynamics of these businesses. Valuable for analysts and decision-makers, this dataset facilitates a deeper understanding of operational efficiency and product preferences within the U.S. retail sector.
+
+``` {r}
+# Dataset reference: 
+#   https://www.kaggle.com/datasets/juhi1994/superstore
+file_path = "./dataset.csv"
+data <- read.csv(file_path, header = TRUE, sep = ",")
+data[,"Order.Date"] <- as.Date(data[,"Order.Date"], "%d-%m-%y")
+data[,"Ship.Date"] <- as.Date(data[,"Ship.Date"], "%d-%m-%y")
+data[,"Order.ID"] <- as.factor(data[,"Order.ID"])
+data[,"Ship.Mode"] <- as.factor(data[,"Ship.Mode"])
+data[,"Customer.ID"] <- as.factor(data[,"Customer.ID"])
+data[,"Segment"] <- as.factor(data[,"Segment"])
+data[,"City"] <- as.factor(data[,"City"])
+data[,"State"] <- as.factor(tolower(data[,"State"]))
+data[,"Product.ID"] <- as.factor(data[,"Product.ID"])
+data[,"Category"] <- as.factor(data[,"Category"])
+data[,"Sub.Category"] <- as.factor(data[,"Sub.Category"])
+data[,"COGS"] <- as.numeric(data[,"Sales"] - data[,"Profit"])
+data[,"Ship.Time"] = as.numeric(data[,"Ship.Date"] - data[,"Order.Date"])
+data <- subset(data, select = -c(Customer.Name, Country, Postal.Code, Product.Name, Region))
+print("Data import and clean successfully")
+head(data)
+```
+
+# Dataset Description
+## Summary data
+``` {r}
+summary(data)
+```
+
+Within this dataset, there are 9 categorical fields and predominantly numeric variables. Notably, metrics such as Sales, Profit, and COGS showcase a broad range of values, marked by the presence of outliers and substantial standard deviations. This variance in financial metrics highlights the need for closer examination of outliers and a thorough exploration of their potential influence on the overall dataset analysis. Other numeric fields have lower standard deviation compared to those fields below.
+
+We can see the standard deviation as below:
+
+* Sales: `r round(sd(data[,"Sales"]),2)` 
+* Profit: `r round(sd(data[,"Profit"]),2)`
+* Cost: `r round(sd(data[,"COGS"]),2)`
+
+## Data outlier and distribution
+### Boxplot Outlier
+``` {r}
+df_performance <- data %>%
+  group_by(Order.ID) %>%
+  summarise(
+    Sales = sum(Sales),
+    Profit = sum(Profit),
+    COGS = sum(COGS), 
+    Ship.Time = mean(Ship.Time)
+  ) %>%
+  pivot_longer(
+    cols = c("Sales", "Profit", "COGS", "Ship.Time"),
+    names_to = "items",
+    values_to = "values"
+  )
+
+df_quant <- data[,c("Quantity", "Discount")] %>% 
+  pivot_longer(
+    cols = c("Quantity", "Discount"),
+    names_to = "items",
+    values_to = "values"
+  )
+p1 <- ggplot(filter(df_quant, items == "Quantity"), aes(items, values))
+p1 <- p1 + geom_boxplot(outlier.color = orange, fill = light_yellow) + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p2 <- ggplot(filter(df_quant, items == "Discount"), aes(items, values)) 
+p2 <- p2 + geom_boxplot(outlier.color = orange, fill = light_yellow) + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p3 <- ggplot(filter(df_performance, items == "Sales"), aes(items, values))
+p3 <- p3 + geom_boxplot(outlier.color = orange, fill = light_yellow) + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p4 <- ggplot(filter(df_performance, items == "Profit"), aes(items, values))
+p4 <- p4 + geom_boxplot(outlier.color = orange, fill = light_yellow) + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p5 <- ggplot(filter(df_performance, items == "COGS"), aes(items, values))
+p5 <- p5 + geom_boxplot(outlier.color = orange, fill = light_yellow) + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p6 <- ggplot(filter(df_performance, items == "Ship.Time"), aes(items, values))
+p6 <- p6 + geom_boxplot(outlier.color = orange, fill = light_yellow) + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 3, nrow = 2)
+```
+
+To analyze the dataset, boxplots and histograms have been employed to offer insights into value distribution and analysis. The boxplot provides a visual representation of each variable's values, with outliers highlighted in orange. Notably, Quantity, Discount, and Ship.Time exhibit relatively normal distributions, showing minimal outliers. In contrast, Sales, Profit, and COGS display wider value ranges and a notable presence of outliers, indicating a more varied and potentially skewed distribution for these financial metrics. This distinction emphasizes the need for a focused examination of Sales, Profit, and COGS to understand and address the impact of outliers on the dataset.
+
+### Data Distribution
+``` {r message=FALSE}
+p1 <- ggplot(filter(df_performance, items == "Sales"), aes(values/1000))
+p1 <- p1 + geom_histogram(fill = blue) + labs(x = "Sales ths USD") + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p2 <- ggplot(filter(df_performance, items == "Profit"), aes(values/1000))
+p2 <- p2 + geom_histogram(fill = blue) + labs(x = "Profit ths USD", y ="") + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p3 <- ggplot(filter(df_performance, items == "COGS"), aes(values/1000))
+p3 <- p3 + geom_histogram(fill = blue) + labs(x = "COGS ths USD", y ="") + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p4 <- ggplot(filter(df_performance, items == "Ship.Time"), aes(values))
+p4 <- p4 + geom_histogram(bins = 5, fill = blue) + labs(x = "Ship.Time") + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+p5 <- ggplot(filter(df_quant, items == "Quantity"), aes(values))
+p5 <- p5 + geom_histogram(bins = 5, fill = blue) + labs(x = "Quantity", y="") + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) 
+p6 <- ggplot(filter(df_quant, items == "Discount"), aes(values))
+p6 <- p6 + geom_histogram(bins = 5, fill = blue) + labs(x = "Discount", y ="") + 
+      theme_bw() + 
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 3, nrow = 2)
+```
+
+The histogram reveals the distribution patterns of variables in the dataset. Ship.Time and Quantity showcase relatively normal distributions, while Discount predominantly falls within the 0.00 to 0.25 range. In contrast, Sales, Profit, and COGS for each order primarily concentrate under 5000 USD. Notably, values exceeding this threshold are mostly identified as outliers. This observation underscores the concentration of financial metrics within a specific range, with instances of higher values warranting closer scrutiny as potential outliers in the dataset.
+
+# E-Commerce insight based on the dataset
+## Sales and Margin per State allocated on US map
+The dataset offers insights into the performance of U.S. stores across all states. Leveraging maps, we can visually represent the performance metrics, particularly Sales and Margin, for each state. This geospatial approach provides a comprehensive overview, allowing for a clear and intuitive understanding of the relative performance of stores across the United States. The visualization aims to highlight geographic variations in Sales and Margin, enabling stakeholders to identify patterns, trends, and potential areas for strategic focus or improvement within the retail network.
+
+### Sales per State
+``` {r message=FALSE}
+state <- map_data("state")
+state_loc <- state %>% 
+  group_by(region) %>%
+  summarise(
+    long = mean(long),
+    lat = mean(lat)
+  )
+names(state_loc)[1] <- "State"
+
+state_list <- data %>%
+  group_by(State) %>%
+  summarise(
+    Sales = sum(Sales),
+    Profit = sum(Profit),
+    Margin = sum(Profit) / sum(Sales)
+    )
+
+state_list <- state_list %>% inner_join(state_loc, by = join_by(State))
+
+ggplot() +
+  geom_polygon(data = state, aes(x=long, y = lat, group = group), fill = pur_blue) +
+  geom_point(data = state_list, aes(x=long, y=lat, size = Sales), color = orange) + 
+  geom_text_repel(data = state_list %>% arrange(Sales) %>% tail(10), 
+                  aes(x=long, y=lat, label=toupper(State)), size = 4, color = dark_red) +
+  geom_point(data = state_list %>% arrange(Sales) %>% tail(10), aes(x=long, y=lat), size = 6, color = light_yellow) + 
+  theme_void() + coord_map() + ggtitle("Total Sales per State and Top 10 Sales") + 
+  theme(legend.position="none", plot.title = element_text(hjust = 0.5)) 
+
+```
+
+The chart above provides an overview of Sales performance across all states, with emphasis on the top 10 states exhibiting the highest sales. The top three states, based on the highest sales, are as follows:
+
+* `r toupper(as.data.frame(state_list%>%arrange(Sales)%>%tail(1))[,"State"])`: `r round(as.data.frame(state_list%>%arrange(Sales)%>%tail(1))[,"Sales"]/1000, 2)` ths USD
+* `r toupper(as.data.frame(state_list%>%arrange(Sales)%>%tail(2)%>%head(1))[,"State"])`: `r round(as.data.frame(state_list%>%arrange(Sales)%>%tail(2)%>%head(1))[,"Sales"]/1000,2)` ths USD
+* `r toupper(as.data.frame(state_list%>%arrange(Sales)%>%tail(3)%>%head(1))[,"State"])`: `r round(as.data.frame(state_list%>%arrange(Sales)%>%tail(3)%>%head(1))[,"Sales"]/1000,2)` ths USD
+
+These states stand out for their notable contribution to overall sales, indicating areas of significant economic activity and potential focus for further analysis or strategic initiatives.
+
+### Margin per State
+``` {r}
+ggplot() +
+  geom_polygon(data = state, aes(x=long, y = lat, group = group), fill = pur_blue) +
+  geom_point(data = state_list, aes(x=long, y=lat, size = Margin), color = orange) + 
+  geom_text_repel(data = state_list %>% arrange(Margin) %>% tail(10), 
+                  aes(x=long, y=lat, label=toupper(State)), size = 4, color = dark_red) +
+  geom_point(data = state_list %>% arrange(Margin) %>% tail(10), aes(x=long, y=lat), size = 6, color = light_yellow) + 
+  theme_void() + coord_map() + ggtitle("Total Margin per State and Top 10 Margin") + 
+  theme(legend.position="none", plot.title = element_text(hjust = 0.5)) 
+```
+
+The chart above provides an overview of Margin performance across all states, with emphasis on the top 10 states exhibiting the highest Margin The top three states, based on the highest Margin, are as follows:
+
+* `r toupper(as.data.frame(state_list%>%arrange(Margin)%>%tail(1))[,"State"])`: `r round(as.data.frame(state_list%>%arrange(Margin)%>%tail(1))[,"Margin"], 2) `
+* `r toupper(as.data.frame(state_list%>%arrange(Margin)%>%tail(2)%>%head(1))[,"State"])`: `r round(as.data.frame(state_list%>%arrange(Margin)%>%tail(2)%>%head(1))[,"Margin"],2) `
+* `r toupper(as.data.frame(state_list%>%arrange(Margin)%>%tail(3)%>%head(1))[,"State"])`: `r round(as.data.frame(state_list%>%arrange(Margin)%>%tail(3)%>%head(1))[,"Margin"],2) `
+
+These states stand out for their notable contribution to overall Margin, indicating areas of significant economic activity and potential focus for further analysis or strategic initiatives.
+
+## Sales & COGS correlation by Scatter plot chart and linear regression trend line
+In this analysis, a Scatter Plot chart, coupled with the linear regression method, has been employed to establish the correlation between Cost of Goods Sold (COGS) and Sales. The Scatter Plot visually depicts the relationship between these two variables, while the linear regression method calculates and presents the trendline.
+
+Additionally, individual trendlines have been generated for each Category, allowing for a nuanced examination of correlations within specific product categories. This approach aids in identifying outliers and understanding how COGS and Sales interact differently across product categories. The visualization serves as a valuable tool for pinpointing areas of interest, potential anomalies, and category-specific insights within the dataset.
+
+``` {r warning=FALSE, message=FALSE}
+data_fur <- filter(data, Category == "Furniture")
+data_os <- filter(data, Category == "Office Supplies")
+data_tech <- filter(data, Category == "Technology")
+
+p1 <- ggplot(data = data_fur[,c("Sales", "COGS")], 
+            aes(x=COGS/1000, y=Sales/1000))
+p1 <- p1 + geom_point(color = red, size = 3) +
+      geom_smooth(method = "lm", level = 0.95, color = hea_blue, lwd= 2) +
+      ggtitle("Furniture") + 
+      theme_bw() + theme(legend.position="none", plot.title = element_text(hjust = 0.5) ) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+      labs(x="", y = "Sales")
+
+p2 <- ggplot(data = data_os[,c("Sales", "COGS")], 
+            aes(x=COGS/1000, y=Sales/1000))
+p2 <- p2 + geom_point(color = red, size = 3) + 
+      geom_smooth(method = "lm", level = 0.95, color = hea_blue, lwd= 2) +
+      ggtitle("Office Supplier") +
+      theme_bw() + theme(legend.position="none", plot.title = element_text(hjust = 0.5)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+      labs(x="COGS", y = "") 
+
+p3 <- ggplot(data = data_tech[,c("Sales", "COGS")], 
+            aes(x=COGS/1000, y=Sales/1000))
+p3 <- p3 + geom_point(color = red, size = 3) + 
+      geom_smooth(method = "lm", level = 0.95, color = hea_blue, lwd= 2) +
+      ggtitle("Technology") +
+      theme_bw() + theme(legend.position="none", plot.title = element_text(hjust = 0.5)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black")) +
+      labs(x="", y = "") 
+
+grid.arrange(p1, p2, p3, ncol = 3)
+```
+
+The trendline, distinguished in blue, integrated with the scatter plot chart effectively reveals outliers, specifically those orders exhibiting abnormal margins – either exceptionally high or low compared to the average. Points situated below the trendline and positioned at a significant distance from it indicate orders characterized by lower-than-average margins. This visual representation facilitates the identification of outlier patterns, enabling a targeted analysis of orders with unique margin behaviors. Such insights can be pivotal for strategic decision-making, emphasizing the need for closer examination and potential interventions in cases of unusually low margins.
+
+## Product Category performance
+In this analysis, a bar chart has been employed to facilitate a comparative assessment of key performance indicators (KPIs) across different product categories. The KPIs under consideration include Sales, Margin, Number of Orders, Number of Clients, and Ship Time. The bar chart visually represents the relative performance of each category in these metrics, allowing for an intuitive understanding of variations and strengths within the dataset. This method provides a comprehensive overview that aids decision-makers in identifying categories that excel in specific KPIs, as well as areas that may require attention or strategic focus.
+
+``` {r}
+df_category <- data %>%
+  group_by(Category) %>%
+  summarise(
+    Sales = sum(Sales),
+    Profit = sum(Profit),
+    Margin = sum(Profit) / sum(Sales),
+    Order = n_distinct(Order.ID),
+    Cust = n_distinct(Customer.ID),
+    Ship_Time = mean(Ship.Time)
+  )
+
+p1 <- df_category %>% 
+        ggplot(aes(x=fct_reorder(Category, Sales), y=Sales/1000))
+p1 <- p1 + 
+      geom_bar(stat = "identity", fill = blue) +
+      geom_text(aes(label=round(Sales/1000,2)), vjust = 1.2, color = dark_red, size = 3) +
+      labs(x="", y ="Sales in ths USD") +
+      theme_bw() + theme(legend.position="none", 
+                         plot.title = element_text(hjust = 0.5),
+                         axis.text.x = element_text(angle = 15, vjust = 0.7)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+p2 <- df_category %>% 
+        ggplot(aes(x=fct_reorder(Category, Profit), y=Profit/1000))
+p2 <- p2 + 
+      geom_bar(stat = "identity", fill = blue) +
+      geom_text(aes(label=round(Profit/1000,2)), vjust = 1.2, color = dark_red, size = 3) +
+      labs(x="", y ="Profit in ths USD") +
+      theme_bw() + theme(legend.position="none", 
+                         plot.title = element_text(hjust = 0.5),
+                         axis.text.x = element_text(angle = 15, vjust = 0.7)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+p3 <- df_category %>% 
+        ggplot(aes(x=fct_reorder(Category, Margin), y=Margin))
+p3 <- p3 + 
+      geom_bar(stat = "identity", fill = blue) +
+      geom_text(aes(label=round(Margin,2)), vjust = 1.2, color = dark_red, size = 3) +
+      labs(x="", y ="Margin") +
+      theme_bw() + theme(legend.position="none", 
+                         plot.title = element_text(hjust = 0.5),
+                         axis.text.x = element_text(angle = 15, vjust = 0.7)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+p4 <- df_category %>% 
+        ggplot(aes(x=fct_reorder(Category, Order), y=Order))
+p4 <- p4 + 
+      geom_bar(stat = "identity", fill = blue) +
+      geom_text(aes(label=round(Order/1000,2)), vjust = 1.2, color = dark_red, size = 3) +
+      labs(x="", y ="Order") +
+      theme_bw() + theme(legend.position="none", 
+                         plot.title = element_text(hjust = 0.5),
+                         axis.text.x = element_text(angle = 15, vjust = 0.7)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+p5 <- df_category %>% 
+        ggplot(aes(x=fct_reorder(Category, Cust), y=Cust))
+p5 <- p5 + 
+      geom_bar(stat = "identity", fill = blue) +
+      geom_text(aes(label=round(Cust,2)), vjust = 1.2, color = dark_red, size = 3) +
+      labs(x="", y ="Customer") +
+      theme_bw() + theme(legend.position="none", 
+                         plot.title = element_text(hjust = 0.5),
+                         axis.text.x = element_text(angle = 15, vjust = 0.7)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+p6 <- df_category %>% 
+        ggplot(aes(x=fct_reorder(Category, Ship_Time), y=Ship_Time))
+p6 <- p6 + 
+      geom_bar(stat = "identity", fill = blue) +
+      geom_text(aes(label=round(Ship_Time,2)), vjust = 1.2, color = dark_red, size = 3) +
+      labs(x="", y ="Ship Time") +
+      theme_bw() + theme(legend.position="none", 
+                         plot.title = element_text(hjust = 0.5),
+                         axis.text.x = element_text(angle = 15, vjust = 0.7)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 3, nrow =2)
+```
+
+The data reveals that the Technology category stands out with the highest Sales, Profit, and Margin, despite having the lowest number of orders. This trend can be attributed to the inherent characteristics of technology products, which often command higher unit costs compared to other categories. The higher value per transaction contributes to elevated Sales and Profit figures, resulting in an impressive Margin despite the lower order volume. This insight underscores the importance of considering unit economics and product characteristics when analyzing category performance, highlighting Technology as a high-value but potentially lower-volume segment within the dataset.
+
+## Shipment peformance per State
+``` {r}
+df_state <- data %>% 
+  group_by(State) %>%
+  summarise(
+    Ship.Time = mean(Ship.Time)
+  )
+
+p1 <- df_state %>% arrange(Ship.Time) %>% head(5) %>%
+        ggplot(aes(x=fct_reorder(State, Ship.Time), y=Ship.Time))
+p1 <- p1 + 
+      geom_bar(stat = "identity", fill = yellow) +
+      geom_text(aes(label=round(Ship.Time,2)), vjust = 1.2, color = dark_red) +
+      ggtitle("Top 5 State with Ship Time") + labs(y="Ship Time", x = "State") +
+      theme_bw() + theme(legend.position="none", 
+                         plot.title = element_text(hjust = 0.5),
+                         axis.text.x = element_text(angle = 45, vjust = 0.7)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+p2 <- df_state %>% arrange(Ship.Time) %>% tail(5) %>%
+        ggplot(aes(x=fct_reorder(State, Ship.Time), y=Ship.Time))
+p2 <- p2 + 
+      geom_bar(stat = "identity", fill = yellow) +
+      geom_text(aes(label=round(Ship.Time,2)), vjust = 1.2, color = dark_red) +
+      ggtitle("Bottom 5 State with Ship Time") + labs(y="Ship Time", x = "State") +
+      theme_bw() + theme(legend.position="none", 
+                         plot.title = element_text(hjust = 0.5),
+                         axis.text.x = element_text(angle = 45, vjust = 0.7)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+grid.arrange(p1, p2, ncol = 2)
+
+```
+
+In our ship time analysis, we've compared the delivery durations across different cities to identify variations and assist in optimizing the delivery plans for the stores. The results indicate considerable differences in ship times between cities.
+
+* The fastest: `r toupper(as.data.frame(df_state%>%arrange(Ship.Time)%>%head(1))[,"State"])`: `r round(as.data.frame(df_state%>%arrange(Ship.Time)%>%head(1))[,"Ship.Time"],2)` days
+
+This city demonstrates the shortest delivery duration, suggesting efficient logistical operations or strategic store placement.
+
+* The slowest: `r toupper(as.data.frame(df_state%>%arrange(Ship.Time)%>%tail(1))[,"State"])`: `r round(as.data.frame(df_state%>%arrange(Ship.Time)%>%tail(1))[,"Ship.Time"],2)` days
+
+Conversely, this city exhibits longer ship times, prompting potential areas for logistical improvement or targeted adjustments in the delivery strategy. This analysis equips stores with valuable insights to enhance delivery efficiency and customer satisfaction.
+
+## Deep dive into each City
+This exploration delves into the sales and margin performance of each city, with a focus on the top 10 cities. By scrutinizing these key financial metrics on a city level, we can gain a more granular understanding of the economic dynamics in specific geographic areas. This deep dive allows for the identification of high-performing cities in terms of Sales and Profit, providing valuable insights that can inform strategic decisions related to inventory management, marketing efforts, and overall business operations.
+
+### Top 10 Sales per City 
+``` {r}
+df_city <- data %>%
+  group_by(City) %>%
+  summarise(
+    Sales = sum(Sales),
+    Profit = sum(Profit)
+  )
+
+p1 <- df_city %>% 
+        arrange(Sales) %>% 
+        tail(10) %>%
+        ggplot(aes(x=fct_reorder(City, Sales), y=Sales/1000))
+p1 <- p1 + 
+      geom_bar(stat = "identity", fill = blue) + coord_flip() +
+      geom_text(aes(label=round(Sales/1000,2)), hjust = 1.2, color = dark_red) +
+      ggtitle("Top 10 City with Sales") + labs(y="Sales in ths USD", x = "City") +
+      theme_bw() + theme(legend.position="none", 
+                         plot.title = element_text(hjust = 0.5)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+print(p1)
+
+
+```
+
+The chart illustrates the cities with the highest Sales, offering a clear visual representation of their respective contributions to overall revenue. This insight enables businesses to identify key economic hubs and strategically allocate resources to maximize sales potential. Understanding the top-performing cities in terms of Sales is instrumental for targeted marketing initiatives, inventory planning, and overall business strategy.
+
+### Top 10 Profit per City
+``` {r}
+p2 <- df_city %>% 
+        arrange(Profit) %>% 
+        tail(10) %>%
+        ggplot(aes(x=fct_reorder(City, Profit), y=Profit/1000))
+p2 <- p2 + 
+      geom_bar(stat = "identity", fill = orange) + coord_flip() +
+      geom_text(aes(label=round(Profit/1000,2)), hjust = 1.2, color = "white") +
+      ggtitle("Top 10 City with Profit") + labs(y="Profit", x = "City") +
+      theme_bw() + theme(legend.position="none", 
+                         plot.title = element_text(hjust = 0.5)) +
+      theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+print(p2)
+```
+
+The presented chart highlights cities that boast the highest profit, emphasizing that certain cities within the top 10 in terms of revenue may not necessarily lead in terms of profitability. This nuanced analysis discerns the profitability dynamics across cities, providing crucial insights for strategic decision-making. By pinpointing cities where profit margins outpace overall revenues, businesses can tailor their operational strategies to enhance overall financial performance and sustainability.
+
+## Understand about Sales of each Segment
+This analysis centers on the performance of each segment (Consumer, Office, and Corporate) using a line chart, which visually represents the sales trends over the last two years. By focusing on this temporal perspective, businesses can discern patterns, identify growth trajectories, and understand the dynamics influencing each segment. The line chart serves as a valuable tool for evaluating the sales performance of Consumer, Office, and Corporate segments, aiding in strategic decision-making and targeted efforts to optimize sales in alignment with segment-specific trends.
+
+``` {r warning=FALSE, message=FALSE} 
+df_segment <- data %>% filter(Order.Date >= max(data[,"Order.Date"]) %m-% months(12)) %>%
+  group_by(Segment, Order.Date) %>%
+  summarise(
+    Sales = sum(Sales)
+  )
+
+ggplot(df_segment) +
+  geom_line(aes(x=Order.Date, y=Sales/1000, color=Segment), lwd = 1.2) +
+  labs(x="Year", y="Sales in ths USD") + 
+  gghighlight(use_direct_label = FALSE, unhighlighted_params = list(colour = alpha("grey85", 1))) + 
+  scale_color_manual(values = c(blue, red, yellow)) +
+  facet_grid(rows =  vars(Segment)) +
+  theme_bw() + theme(legend.position="none", 
+                     plot.title = element_text(hjust = 0.5),
+                     axis.text.x = element_text(angle = 45, vjust = 0.7)) +
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+  
+  
+```
+
+The line chart depicting the time series and trend of sales for each segment provides valuable insights for management. This data serves as a foundation for making informed forecasts regarding inventory, service needs, and working capital. Notably, the observed fluctuations, especially towards the end of the year, coincide with increased shopping demand, reaching peaks during prominent events such as Black Friday and Thanksgiving. Recognizing these patterns enables proactive planning, ensuring that businesses can effectively manage resources and capitalize on revenue opportunities during peak periods. This analysis contributes to strategic decision-making, enhancing overall operational efficiency.
+
+## Ship mode performance
+This analysis centers on evaluating the performance of each ship mode, providing management with insights to make informed decisions on optimizing profitability. By assessing the effectiveness of different shipment methods, businesses can strategically prioritize and allocate resources to maximize profits. This evaluation is crucial for understanding the efficiency and cost-effectiveness of various ship modes, aiding management in making data-driven choices that align with both customer expectations and financial goals.
+
+``` {r}
+df_ship_mode <- data %>%
+  group_by(Ship.Mode) %>%
+  summarise(
+    Sales = sum(Sales/1000),
+    Profit = sum(Profit/1000)
+  ) %>% 
+  pivot_longer(
+    cols = c("Sales", "Profit"),
+    names_to = "items",
+    values_to = "values"
+  )
+
+ggplot(df_ship_mode, aes(fill = items, y = values, x = Ship.Mode )) + 
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label=round(values,2)), color = dark_red, 
+            position = position_dodge(0.9), vjust = -0.3) +
+  scale_fill_manual(values = c(yellow, blue)) +
+  ggtitle("Ship Mode performance") + labs(y="Amount in ths USD", x = "Ship Mode") +
+  theme_bw() + theme(plot.title = element_text(hjust = 0.5)) +
+  theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+While Standard Class emerges as the most popular shipment mode, it is essential to delve into the profitability aspect. Evaluating the margin for each shipment mode provides a deeper understanding of their respective financial contributions. This nuanced analysis helps in identifying which shipment mode not only generates high sales and profit but also ensures a favorable margin. Such insights are valuable for strategic decision-making, enabling management to prioritize shipment modes that not only meet customer preferences but also contribute significantly to overall profitability.
+
+* Standard: `r round(as.data.frame(filter(df_ship_mode, Ship.Mode == "Standard Class" & items =="Profit")[,"values"]) / as.data.frame(filter(df_ship_mode, Ship.Mode == "Standard Class" & items =="Sales")[,"values"]),2)`
+* Second: `r round(as.data.frame(filter(df_ship_mode, Ship.Mode == "Second Class" & items =="Profit")[,"values"]) / as.data.frame(filter(df_ship_mode, Ship.Mode == "Standard Class" & items =="Sales")[,"values"]),2)`
+* First: `r round(as.data.frame(filter(df_ship_mode, Ship.Mode == "First Class" & items =="Profit")[,"values"]) / as.data.frame(filter(df_ship_mode, Ship.Mode == "Standard Class" & items =="Sales")[,"values"]),2)`
+* Same day: `r round(as.data.frame(filter(df_ship_mode, Ship.Mode == "Same Day" & items =="Profit")[,"values"]) / as.data.frame(filter(df_ship_mode, Ship.Mode == "Standard Class" & items =="Sales")[,"values"]),2)`
+
+## Time series Analysis with Sales 
+This analysis employs time series techniques to delve into the monthly sales data, unveiling trends and potential seasonal patterns. By examining the dataset over time, businesses can identify recurring trends, seasonal variations, and patterns that may impact monthly sales performance. Time series analysis is instrumental in forecasting future sales, facilitating proactive decision-making, and optimizing strategies to align with temporal fluctuations in customer demand. This comprehensive approach enables businesses to adapt to changing market dynamics and capitalize on opportunities arising from seasonal trends.
+
+``` {r}
+data[,"tmp"] = format(data[,"Order.Date"],"%m-%y")
+df_sales <- data %>%
+  group_by(tmp) %>%
+  summarise(
+    Sales = sum(Sales/1000),
+    Profit = sum(Profit)
+  )
+
+df_sales <- as.data.frame(df_sales)
+data <- subset(data, select = -tmp)
+df_sales <- subset(df_sales, select = -tmp)
+
+df_sales_ts <- ts(df_sales[,"Sales"], start = c(2014,1), frequency = 12)
+df_sales_comp <- decompose(df_sales_ts)
+plot(df_sales_comp, col = dark_red)
+
+```
+
+The time series analysis reveals a consistent upward trend in revenue from 2014 to 2018, indicating overall growth in sales over this period. Additionally, the observed seasonal data highlights distinct seasonality, with a notable surge in shopping activity towards the end of each year. Recognizing these patterns is crucial for understanding customer behavior, adapting marketing strategies to capitalize on peak seasons, and making informed decisions regarding inventory and resource allocation. This comprehensive insight into both trend and seasonality empowers businesses to navigate dynamic market conditions effectively.
+
+## Little bit fun with Word cloud
+Injecting a bit of fun into the analysis, we've crafted a word cloud to visually represent the demand for each Subcategory. The word cloud captures the frequency and prominence of Subcategory names, providing an engaging and intuitive snapshot of customer preferences and product popularity. This creative visualization allows for a quick and enjoyable assessment of the diverse range of Subcategories within the dataset, aiding in identifying trends and areas of focus for inventory management and marketing strategies.
+
+``` {r}
+df_wordcloud <- data %>% 
+  group_by(Sub.Category) %>%
+  summarise(
+    freq = n()
+  )
+
+wordcloud2(data = df_wordcloud, size = 1.5, 
+           color = rep(c(blue_background, pur_blue, blue, hea_blue, 
+                         orange, yellow, red, dark_red), 
+                     length.out=nrow(df_wordcloud)))
+```
