@@ -216,7 +216,8 @@ ggplot() +
   geom_point(data = state_list, aes(x=long, y=lat, size = Sales), color = orange) + 
   geom_text_repel(data = state_list %>% arrange(Sales) %>% tail(10), 
                   aes(x=long, y=lat, label=toupper(State)), size = 4, color = dark_red) +
-  geom_point(data = state_list %>% arrange(Sales) %>% tail(10), aes(x=long, y=lat), size = 6, color = light_yellow) + 
+  geom_point(data = state_list %>% arrange(Sales) %>% tail(10), aes(x=long, y=lat), 
+             size = 6, color = light_yellow) + 
   theme_void() + coord_map() + ggtitle("Total Sales per State and Top 10 Sales") + 
   theme(legend.position="none", plot.title = element_text(hjust = 0.5)) 
 
@@ -237,7 +238,8 @@ ggplot() +
   geom_point(data = state_list, aes(x=long, y=lat, size = Margin), color = orange) + 
   geom_text_repel(data = state_list %>% arrange(Margin) %>% tail(10), 
                   aes(x=long, y=lat, label=toupper(State)), size = 4, color = dark_red) +
-  geom_point(data = state_list %>% arrange(Margin) %>% tail(10), aes(x=long, y=lat), size = 6, color = light_yellow) + 
+  geom_point(data = state_list %>% arrange(Margin) %>% tail(10), aes(x=long, y=lat), 
+             size = 6, color = light_yellow) + 
   theme_void() + coord_map() + ggtitle("Total Margin per State and Top 10 Margin") + 
   theme(legend.position="none", plot.title = element_text(hjust = 0.5)) 
 ```
